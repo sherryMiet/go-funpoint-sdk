@@ -108,11 +108,11 @@ func NewConfiguration() *Configuration {
 		Debug:         false,
 		Servers: ServerConfigurations{
 			{
-				URL:         "https://payment.funpoint.tw",
+				URL:         "https://payment.funpoint.com.tw",
 				Description: "正式環境",
 			},
 			{
-				URL:         "https://payment-stage.funpoint.tw",
+				URL:         "https://payment-stage.funpoint.com.tw",
 				Description: "測試環境",
 			},
 			{
