@@ -1,0 +1,1420 @@
+openapi: 3.0.3
+info:
+  description: funpoint API 定義文件
+  title: funpoint API
+  version: 0.0.24
+externalDocs:
+  description: 可以在這裡找到完整的 API 文件說明
+  url: https://www.ecpay.com.tw/Content/files/ecpay_011.pdf
+servers:
+- description: 正式環境
+  url: https://payment.funpoint.com.tw
+- description: 測試環境
+  url: https://payment-stage.funpoint.com.tw
+- description: Prism Mock Server
+  url: http://127.0.0.1:4010
+tags:
+- description: 綠界金流
+  name: ECPay
+- description: 回呼
+  name: CallBack
+paths:
+  /Cashier/QueryCreditCardPeriodInfo:
+    post:
+      description: 13.信用卡定期定額訂單查詢
+      operationId: QueryCreditCardPeriodInfo
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QueryCreditCardPeriodInfoRequest'
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                $ref: '#/components/schemas/CreditCardPeriodInfo'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditCardPeriodInfo'
+          description: OK
+      tags:
+      - ECPay
+      x-content-fallback: application/json
+  /Cashier/QueryTradeInfo/V5:
+    post:
+      description: 8. 查詢訂單
+      operationId: QueryTradeInfo
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QueryTradeInfoRequest'
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                $ref: '#/components/schemas/TradeInfo'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeInfo'
+          description: 接收成功
+      tags:
+      - ECPay
+      x-content-fallback: application/x-www-form-urlencoded
+  /callback/ReturnURL:
+    post:
+      description: 付款結果通知
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderResult'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                default: 1|OK
+                example: 1|OK
+                type: string
+          description: 接收成功
+      security: []
+      tags:
+      - CallBack
+  /callback/PeriodReturnURL:
+    post:
+      description: 付款結果通知
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PeriodOrderResult'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                default: 1|OK
+                example: 1|OK
+                type: string
+          description: 接收成功
+      security: []
+      tags:
+      - CallBack
+components:
+  schemas:
+    QueryTradeInfoRequest:
+      properties:
+        MerchantID:
+          description: |
+            **特店編號(由綠界提供)**
+          example: "2000132"
+          maxLength: 10
+          type: string
+        MerchantTradeNo:
+          description: |
+            **特店交易編號(由特店提供)** 訂單產生時傳送給綠界的特店交易編號。
+          example: ecPay1234
+          maxLength: 20
+          pattern: ^[\w\d]*$
+          type: string
+        TimeStamp:
+          description: "**驗證時間**  \n將當下的時間轉為UnixTimeStamp(見範例)用於驗證此次介接的時間區間。  \n綠界\
+            驗證時間區間暫訂為 3 分鐘內有效，超過則此次介接無效。 \n"
+          minimum: 0
+          type: integer
+        PlatformID:
+          description: "**特約合作平台商代號(由綠界提供)**  \n為專案合作的平台商使用。  \n一般特店或平台商本身介接，則參數請帶\
+            放空值。  \n若為專案合作平台商的特店使用時，則參數請帶平台商所綁的特店編號 `MerchantID`。  \n"
+          maxLength: 10
+          type: string
+        CheckMacValue:
+          description: |
+            **檢查碼** 特店必須檢查檢查碼`CheckMacValue`來驗證，請參考附錄檢查碼機制。
+          type: string
+      required:
+      - CheckMacValue
+      - MerchantID
+      - MerchantTradeNo
+      - TimeStamp
+      type: object
+    TradeInfo:
+      example:
+        HandlingCharge: 0
+        PaymentDate: 2012/03/16 12:03:12
+        MerchantID: "2000132"
+        CheckMacValue: CheckMacValue
+        MerchantTradeNo: ecPay1234
+        PaymentTypeChargeFee: 25.0
+        CustomField1: CustomField1
+        CustomField2: CustomField2
+        CustomField3: CustomField3
+        CustomField4: CustomField4
+        StoreID: StoreID
+        PaymentType: Credit_CreditCard
+        TradeDate: 2012/03/15 17:40:58
+        ItemName: 商品 1
+        TradeAmt: 22000
+        TradeNo: "20120315174058256412"
+        TradeStatus: "0"
+      properties:
+        MerchantID:
+          description: |
+            **特店編號(由綠界提供)**
+          example: "2000132"
+          maxLength: 10
+          type: string
+        MerchantTradeNo:
+          description: |
+            **特店交易編號(由特店提供)** 訂單產生時傳送給綠界的特店交易編號。
+          example: ecPay1234
+          maxLength: 20
+          pattern: ^[\w\d]*$
+          type: string
+        StoreID:
+          description: |
+            **特店旗下店舖代號** 提供特店填入分店代號使用，僅可用英數字大小寫混合。
+          maxLength: 20
+          pattern: ^[\w\d]*$
+          type: string
+        TradeNo:
+          description: |
+            **綠界的交易編號** 首次授權所產生的綠界交易編號
+          example: "20120315174058256412"
+          maxLength: 20
+          type: string
+        TradeAmt:
+          description: |
+            **交易金額**
+          example: 22000
+          minimum: 0
+          type: integer
+        PaymentDate:
+          description: |
+            **付款時間** 格式為 yyyy/MM/dd HH:mm:ss
+          example: 2012/03/16 12:03:12
+          format: ecpay-date-time
+          type: string
+        PaymentType:
+          $ref: '#/components/schemas/ReturnPaymentTypeEnum'
+        HandlingCharge:
+          description: |
+            **手續費合計**  履約結束後才會計算，未計算前為 0
+          example: 0
+          minimum: 0
+          type: integer
+        PaymentTypeChargeFee:
+          description: |
+            **通路費**
+          example: 25.0
+          format: float
+          minimum: 0
+          type: number
+        TradeDate:
+          description: |
+            **訂單成立時間** 格式為 yyyy/MM/dd HH:mm:ss
+          example: 2012/03/15 17:40:58
+          format: ecpay-date-time
+          type: string
+        TradeStatus:
+          description: "**交易狀態**   \n回傳值：  \n若為 0 時，代表交易訂單成立未付款  \n若為 1 時，代表交易訂單成立\
+            已付款  \n若為 10200095 時，代表消費者未選擇付款方式，故交易失敗。  \n"
+          example: "0"
+          maxLength: 8
+          type: string
+        ItemName:
+          description: "**商品名稱**   \n"
+          example: 商品 1
+          maxLength: 400
+          type: string
+        CustomField1:
+          description: "**自訂名稱欄位1**  \n提供合作廠商使用記錄用客製化使用欄位  \n"
+          maxLength: 50
+          type: string
+        CustomField2:
+          description: "**自訂名稱欄位2**  \n提供合作廠商使用記錄用客製化使用欄位  \n"
+          maxLength: 50
+          type: string
+        CustomField3:
+          description: "**自訂名稱欄位3**  \n提供合作廠商使用記錄用客製化使用欄位  \n"
+          maxLength: 50
+          type: string
+        CustomField4:
+          description: "**自訂名稱欄位4**  \n提供合作廠商使用記錄用客製化使用欄位  \n"
+          maxLength: 50
+          type: string
+        CheckMacValue:
+          description: |
+            **檢查碼** 特店必須檢查檢查碼`CheckMacValue`來驗證，請參考附錄檢查碼機制。
+          type: string
+      required:
+      - CheckMacValue
+      - CustomField1
+      - CustomField2
+      - CustomField3
+      - CustomField4
+      - HandlingCharge
+      - ItemName
+      - MerchantID
+      - MerchantTradeNo
+      - PaymentDate
+      - PaymentType
+      - PaymentTypeChargeFee
+      - StoreID
+      - TradeAmt
+      - TradeDate
+      - TradeNo
+      - TradeStatus
+      type: object
+    QueryCreditCardPeriodInfoRequest:
+      properties:
+        MerchantID:
+          description: |
+            **特店編號(由綠界提供)**
+          example: "2000132"
+          maxLength: 10
+          type: string
+        MerchantTradeNo:
+          description: |
+            **特店交易編號(由特店提供)** 訂單產生時傳送給綠界的特店交易編號。
+          example: ecPay1234
+          maxLength: 20
+          pattern: ^[\w\d]*$
+          type: string
+        TimeStamp:
+          description: "**驗證時間**  \n將當下的時間轉為UnixTimeStamp(見範例)用於驗證此次介接的時間區間。  \n綠界\
+            驗證時間區間暫訂為 3 分鐘內有效，超過則此次介接無效。  \n"
+          minimum: 0
+          type: integer
+        CheckMacValue:
+          description: |
+            **檢查碼** 請參考附錄檢查碼機制與產生檢查碼範例程式
+          type: string
+      required:
+      - CheckMacValue
+      - MerchantID
+      - MerchantTradeNo
+      - TimeStamp
+      type: object
+    CreditCardPeriodInfo:
+      example:
+        ExecTimes: 602
+        TotalSuccessTimes: 3
+        amount: 1000
+        ExecLog:
+        - amount: 2000
+          RtnCode: 1
+          process_date: 2013/11/12 12:01:32
+          TradeNo: "20120315174058256424"
+          gwsr: 120326
+          auth_code: "777777"
+        - amount: 2000
+          RtnCode: 1
+          process_date: 2013/11/12 12:01:32
+          TradeNo: "20120315174058256424"
+          gwsr: 120326
+          auth_code: "777777"
+        card6no: "523782"
+        RtnCode: 1
+        card4no: "2369"
+        MerchantID: "2000132"
+        MerchantTradeNo: ecPay1234
+        PeriodAmount: 1000
+        auth_code: "777777"
+        ExecStatus: "2"
+        process_date: 2013/11/12 12:01:32
+        Frequency: 30
+        TradeNo: "20120315174058256424"
+        gwsr: 120326
+        TotalSuccessAmount: 3000
+      properties:
+        MerchantID:
+          description: |
+            **特店編號(由綠界提供)**
+          example: "2000132"
+          maxLength: 10
+          type: string
+        MerchantTradeNo:
+          description: |
+            **特店交易編號(由特店提供)** 訂單產生時傳送給綠界的特店交易編號。
+          example: ecPay1234
+          maxLength: 20
+          pattern: ^[\w\d]*$
+          type: string
+        TradeNo:
+          description: |
+            **綠界的交易編號** 首次授權所產生的綠界交易編號
+          example: "20120315174058256424"
+          maxLength: 20
+          type: string
+        RtnCode:
+          description: "**交易狀態**   \n回傳值為 1 時代表授權成功，其餘為失敗，失敗代碼請參考交易訊息代碼一覽表\n"
+          example: 1
+          type: integer
+        PeriodType:
+          $ref: '#/components/schemas/CreditPeriodTypeEnum'
+        Frequency:
+          description: |
+            **執行頻率**  訂單建立時所設定的執行頻率
+          maximum: 365
+          minimum: 1
+          type: integer
+        ExecTimes:
+          description: |
+            **執行次數**  訂單建立時所設定的執行頻率
+          maximum: 999
+          minimum: 1
+          type: integer
+        PeriodAmount:
+          description: |
+            **每次授權金額**  訂單建立時的每次要授權金額
+          example: 1000
+          minimum: 0
+          type: integer
+        amount:
+          description: |
+            **授權金額** 所授權的金額
+          example: 1000
+          minimum: 0
+          type: integer
+        gwsr:
+          description: "**授權交易單號** 所授權的交易單號 \n"
+          example: 120326
+          type: integer
+        process_date:
+          description: "**授權成功處理時間** 格式為 yyyy/MM/dd HH:mm:ss \n"
+          example: 2013/11/12 12:01:32
+          format: ecpay-date-time
+          type: string
+        auth_code:
+          description: |
+            **授權碼** 授權碼
+          example: "777777"
+          maximum: 6
+          type: string
+        card4no:
+          description: |
+            **卡片的末 4 碼** 卡片的末四碼
+          example: "2369"
+          maxLength: 4
+          type: string
+        card6no:
+          description: |
+            **卡片的前 6 碼** 卡片的前六碼
+          example: "523782"
+          maxLength: 6
+          type: string
+        TotalSuccessTimes:
+          description: |
+            **已成功授權次數合計** 目前已成功授權的次數
+          example: 3
+          minimum: 0
+          type: integer
+        TotalSuccessAmount:
+          description: "**已成功授權總金額** 目前已成功授權的金額合計 \n"
+          example: 3000
+          minimum: 0
+          type: integer
+        ExecStatus:
+          $ref: '#/components/schemas/ExecStatusEnum'
+        ExecLog:
+          items:
+            $ref: '#/components/schemas/ExecLogRecord'
+          type: array
+      required:
+      - ExecLog
+      - ExecStatus
+      - ExecTimes
+      - Frequency
+      - MerchantID
+      - MerchantTradeNo
+      - PeriodAmount
+      - PeriodType
+      - RtnCode
+      - TotalSuccessAmount
+      - TotalSuccessTimes
+      - TradeNo
+      - amount
+      - auth_code
+      - card4no
+      - card6no
+      - gwsr
+      - process_date
+      type: object
+    ExecLogRecord:
+      description: "**每次授權明細**  \n每一次的授權紀錄。  \n例如，若已成功授權 3 次(TotalSuccessTimes 為 3)，\
+        則會顯示 3 筆授權紀錄。  \n欄位內容詳見下列定期定額授權明細之參數說明。  \n"
+      example:
+        amount: 2000
+        RtnCode: 1
+        process_date: 2013/11/12 12:01:32
+        TradeNo: "20120315174058256424"
+        gwsr: 120326
+        auth_code: "777777"
+      properties:
+        RtnCode:
+          description: "**交易狀態**  \n回傳值為 1 時代表授權成功，其餘為失敗，失敗代碼請參考交易訊息代碼一覽\n"
+          example: 1
+          type: integer
+        amount:
+          description: |
+            **本次授權金額**  所授權的金額
+          example: 2000
+          minimum: 0
+          type: integer
+        gwsr:
+          description: |
+            **授權交易單號**  所授權的交易單號
+          example: 120326
+          type: integer
+        process_date:
+          description: |
+            **處理時間** 格式為 yyyy/MM/dd HH:mm:ss
+          example: 2013/11/12 12:01:32
+          format: ecpay-date-time
+          type: string
+        auth_code:
+          description: |
+            **授權碼** 授權碼
+          example: "777777"
+          maximum: 6
+          type: string
+        TradeNo:
+          description: |
+            **綠界的交易編號** 請保存綠界的交易編號與特店交易編號 `MerchantTradeNo` 的關連。
+          example: "20120315174058256424"
+          maxLength: 20
+          type: string
+      required:
+      - RtnCode
+      - TradeNo
+      - amount
+      - auth_code
+      - gwsr
+      - process_date
+      type: object
+    ExecStatusEnum:
+      description: "**執行狀態**  \n回傳值如下：  \n1.若為 `0` 時代表已取消  \n2.若為 `1` 時代表執行中  \n3.若\
+        為 `2` 時代表執行完成\n"
+      enum:
+      - "0"
+      - "1"
+      - "2"
+      example: "2"
+      type: string
+      x-enum-varnames:
+      - CANCELED
+      - INPROGRESS
+      - COMPLETED
+      x-enum-descriptions:
+      - 已取消
+      - 執行中
+      - 執行完成
+    AioCheckOutGeneralOption:
+      properties:
+        MerchantID:
+          description: |
+            **特店編號(由綠界提供)**
+          example: "2000132"
+          maxLength: 10
+          type: string
+        MerchantTradeNo:
+          description: "**特店交易編號(由特店提供)**  \n特店交易編號均為唯一值，不可重複使用。  \n英數字大小寫混合  \n如何\
+            避免訂單編號重複請參考 FAQ  \n如有使用 `PlatformID` ，平台商底下所有商家之訂單編號亦不可重複。  \n"
+          example: ecPay1234
+          maxLength: 20
+          pattern: ^[\w\d]*$
+          type: string
+        StoreID:
+          description: |
+            **特店旗下店舖代號** 提供特店填入分店代號使用，僅可用英數字大小寫混合。
+          maxLength: 20
+          pattern: ^[\w\d]*$
+          type: string
+        MerchantTradeDate:
+          description: |
+            **特店交易時間** 格式為 `yyyy/MM/dd HH:mm:ss`
+          example: 2012/03/21 15:40:18
+          format: ecpay-date-time
+          type: string
+        PaymentType:
+          $ref: '#/components/schemas/AioCheckPaymentTypeEnum'
+        TotalAmount:
+          description: "**交易金額**  \n請帶整數，不可有小數點。  \n僅限新台幣。  \n各付款金額的限制，請參考 <https://www.ecpay.com.tw/CascadeFAQ/CascadeFAQ_Qa?nID=3605>\n"
+          example: 5000
+          minimum: 0
+          type: integer
+        TradeDesc:
+          description: |
+            **交易描述** 傳送到綠界前，請將參數值先做 UrlEncode。
+          example: ecpay 商城購物
+          maxLength: 200
+          type: string
+        ItemName:
+          description: "**商品名稱**  \n1. 如果商品名稱有多筆，需在金流選擇頁一行一行顯示商品名稱的話，商品名稱請以符號#分隔。\
+            \  \n2. 商品名稱字數限制為中英數 400 字內，超過此限制系統將自動截斷。  \n"
+          example: 手機 20 元 X2#隨身碟 60 元 X1
+          maxLength: 400
+          type: string
+        ReturnURL:
+          description: "**付款完成通知回傳網址**  \n當消費者付款完成後，綠界會將付款結果參數以幕後(Server POST)回傳到該\
+            網址。  \n詳細說明請參考付款結果通知  \n注意事項：   \n1. 請勿設定與 Client 端接收付款結果網址 OrderResultURL\
+            \ 相同位置，避免程式判斷錯誤。  \n2. 請在收到 Server 端付款結果通知後，請正確回應 1|OK 給綠界。  \n"
+          example: http://your.web.site/receive.php
+          maxLength: 200
+          type: string
+        ChoosePayment:
+          $ref: '#/components/schemas/ChoosePaymentEnum'
+        CheckMacValue:
+          description: |
+            **檢查碼** 請參考附錄檢查碼機制與產生檢查碼範例程式
+          type: string
+        ClientBackURL:
+          description: "**Client端返回特店的按鈕連結**  \n消費者點選此按鈕後，會將頁面導回到此設定的網址  \n注意事項： \
+            \ \n導回時不會帶付款結果到此網址，只是將頁面導回而已。  \n設定此參數，綠界會在付款完成或取號完成頁面上顯示[返回商店]的按鈕。  \n\
+            設定此參數，發生簡訊 OTP 驗證失敗時，頁面上會顯示[返回商店]的按鈕。  \n若未設定此參數，則綠界付款完成頁或取號完成頁面，不會顯示\
+            [返回商店]的按鈕。  \n若導回網址未使用 https 時，部份瀏覽器可能會出現警告訊息。  \n"
+          example: http://your.web.site/Shopping/Detail
+          maxLength: 200
+          type: string
+        ItemURL:
+          description: |
+            **商品銷售網址**
+          maxLength: 200
+          type: string
+        Remark:
+          description: |
+            **備註欄位**
+          maxLength: 100
+          type: string
+        ChooseSubPayment:
+          $ref: '#/components/schemas/ChooseSubPaymentEnum'
+        OrderResultURL:
+          description: "**Client端回傳付款結果網址**    \n當消費者付款完成後，綠界會將付款結果參數以幕前(Client POST)回\
+            傳到該網址。  \n詳細說明請參考付款結果通知  \n注意事項：  \n1. 若與[ClientBackURL]同時設定，將會以此參數為主。\
+            \  \n2. 銀聯卡及非即時交易(ATM、CVS、BARCODE)不支援此參數。  \n"
+          example: http://your.web.site/client.php
+          maxLength: 200
+          type: string
+        NeedExtraPaidInfo:
+          $ref: '#/components/schemas/NeedExtraPaidInfoEnum'
+        DeviceSource:
+          description: |
+            **裝置來源** 請帶空值，由系統自動判定。
+          maxLength: 10
+          type: string
+        IgnorePayment:
+          description: "**隱藏付款**  \n當付款方式 `ChoosePayment` 為 `ALL` 時，可隱藏不需要的付款方式，多筆\
+            請以井號分隔(#)。  \n可用的參數值：  \n- `Credit`: 信用卡  \n- `WebATM`: 網路 ATM  \n- `ATM`:\
+            \ 自動櫃員機  \n- `CVS`: 超商代碼  \n- `BARCODE`: 超商條碼  \n"
+          example: ATM#WebATM
+          maxLength: 100
+          type: string
+        PlatformID:
+          description: "**特約合作平台商代號(由綠界提供)**  \n為專案合作的平台商使用。  \n一般特店或平台商本身介接，則參數請帶\
+            放空值。  \n若為專案合作平台商的特店使用時，則參數請帶平台商所綁的特店編號 `MerchantID`。  \n"
+          maxLength: 10
+          type: string
+        InvoiceMark:
+          $ref: '#/components/schemas/InvoiceMarkEnum'
+        CustomField1:
+          description: "**自訂名稱欄位1**  \n提供合作廠商使用記錄用客製化使用欄位  \n注意事項：  \n特殊符號只支援 `,.#()$[];%{}:/?&@<>!`\n"
+          maxLength: 50
+          type: string
+        CustomField2:
+          description: "**自訂名稱欄位2**  \n提供合作廠商使用記錄用客製化使用欄位  \n注意事項：  \n特殊符號只支援 `,.#()$[];%{}:/?&@<>!`\n"
+          maxLength: 50
+          type: string
+        CustomField3:
+          description: "**自訂名稱欄位3**  \n提供合作廠商使用記錄用客製化使用欄位  \n注意事項：  \n特殊符號只支援 `,.#()$[];%{}:/?&@<>!`\n"
+          maxLength: 50
+          type: string
+        CustomField4:
+          description: "**自訂名稱欄位4**  \n提供合作廠商使用記錄用客製化使用欄位  \n注意事項：  \n特殊符號只支援 `,.#()$[];%{}:/?&@<>!`\n"
+          maxLength: 50
+          type: string
+        EncryptType:
+          $ref: '#/components/schemas/EncryptTypeEnum'
+        Language:
+          $ref: '#/components/schemas/LanguageEnum'
+      required:
+      - CheckMacValue
+      - ChoosePayment
+      - EncryptType
+      - ItemName
+      - MerchantID
+      - MerchantTradeDate
+      - MerchantTradeNo
+      - PaymentType
+      - ReturnURL
+      - TotalAmount
+      - TradeDesc
+      type: object
+    AioCheckOutAtmOption:
+      properties:
+        ExpireDate:
+          default: 3
+          description: "**允許繳費有效天數**  \n若需設定最長 60 天，最短 1 天。  \n未設定此參數則預設為 3 天  \n注\
+            意事項：以天為單位\n"
+          example: 7
+          maximum: 60
+          minimum: 1
+          type: integer
+        PaymentInfoURL:
+          description: "**Server端回傳付款相關資訊**  \n若有設定此參數，訂單建立完成後(非付款完成)，綠界會 Server 端\
+            背景回傳消費者付款方式相關資訊(例：銀行代碼、繳費虛擬帳號繳費期限…等)。  \n請參考[ATM、CVS 或 BARCODE 的取號結果通知\
+            .]  \n注意事項：  \n頁面將會停留在綠界，顯示繳費的相關資訊。\n"
+          example: http://your.web.site/paymentinfo.php
+          maxLength: 200
+          type: string
+        ClientRedirectURL:
+          description: "**Client端回傳付款相關資訊**  \n若有設定此參數，訂單建立完成後(非付款完成)，綠界會 Client 端\
+            回傳消費者付款方式相關資訊(例：銀行代碼、繳費虛擬帳號繳費期限…等)且將頁面轉到特店指定的頁面。請參考[ATM、CVS 或 BARCODE\
+            \ 的取號結果通知.]  \n注意事項：  \n若設定此參數，將會使設定的返回特店的按鈕連結[ClientBackURL]失效。  \n若導\
+            回網址未使用 https 時，部份瀏覽器可能會出現警告訊息。  \n"
+          example: http://your.web.site/ClientRedirectURL.php
+          maximum: 200
+          type: string
+      type: object
+    AioCheckOutCvsBarcodeOption:
+      properties:
+        StoreExpireDate:
+          description: "**超商繳費截止時間**  \n注意事項：  \n`CVS`:以分鐘為單位  \n`BARCODE`:以天為單位 \
+            \ \n若未設定此參數，`CVS` 預設為 `10080` 分鐘(`7` 天)；BARCODE 預設為 `7` 天。  \n若需設定此參數，\
+            請於建立訂單時將此參數送給綠界。提醒您，CVS 帶入數值不可超過 `86400` 分鐘，超過時一律以 `86400` 分鐘計(`60` 天\
+            )  \n例：`08/01` 的 `20:15` 分購買商品，繳費期限為 `7` 天，表示 `8/08` 的 `20:15` 分前您必須前往\
+            超商繳費。  \n範例: `CVS`=`1440`(共 `1` 天)、`BARCODE`=`7`(共 `7` 天)  \n"
+          type: integer
+        Desc_1:
+          description: |
+            **交易描述1** 會出現在超商繳費平台螢幕上
+          example: 交易描述1
+          maxLength: 20
+          type: string
+        Desc_2:
+          description: |
+            **交易描述2** 會出現在超商繳費平台螢幕上
+          example: 交易描述2
+          maxLength: 20
+          type: string
+        Desc_3:
+          description: |
+            **交易描述3** 會出現在超商繳費平台螢幕上
+          example: 交易描述3
+          maxLength: 20
+          type: string
+        Desc_4:
+          description: |
+            **交易描述4** 會出現在超商繳費平台螢幕上
+          example: 交易描述4
+          maxLength: 20
+          type: string
+        PaymentInfoURL:
+          description: "**Server 端回傳付款相關資訊**  \n若有設定此參數，訂單建立完成後(非付款完成)，綠界會 Server\
+            \ 端背景回傳消費者付款方式相關資訊(例：繳費代碼與繳費超商)。  \n請參考[`ATM`、`CVS` 或 `BARCODE` 的取號結果通\
+            知.]  \n注意事項：  \n頁面將會停留在綠界，顯示繳費的相關資訊。  \n回傳只有三段號碼，並不會回傳條碼圖，需自行轉換成 code39\
+            \ 的三段條碼。  \n"
+          maxLength: 200
+          type: string
+        ClientRedirectURL:
+          description: "**Client端回傳付款方式相關資訊**  \n若有設定此參數，訂單建立完成後(非付款完成)，綠界會從 Client\
+            \ 端回傳消費者付款方式相關資訊(例：繳費代碼與繳費超商)且將頁面轉到特店指定的頁面。  \n請參考[`ATM`、`CVS` 或 `BARCODE`\
+            \ 的取號結果通知.]  \n注意事項：  \n若設定此參數，將會使設定的返回特店的按鈕連結[ClientBackURL]失效。  \n若導\
+            回網址未使用 https 時，部份瀏覽器可能會出現警告訊息。  \n回傳只有三段號碼，並不會回傳條碼圖，需自行轉換成 code39 的三段條\
+            碼。  \n"
+          maxLength: 200
+          type: string
+      type: object
+    AioCheckOutCreditOption:
+      properties:
+        BindingCard:
+          $ref: '#/components/schemas/BindingCardEnum'
+        MerchantMemberID:
+          description: |
+            **記憶卡號識別碼** 記憶卡號識別碼 (特店代號 `MerchantID` + `廠商會員編號`)
+          example: Test1234
+          maxLength: 30
+          type: string
+      type: object
+    AioCheckOutCreditOnetimeOption:
+      properties:
+        Redeem:
+          $ref: '#/components/schemas/RedeemEnum'
+        UnionPay:
+          $ref: '#/components/schemas/UnionPayEnum'
+      type: object
+    AioCheckOutCreditInstallmentOption:
+      properties:
+        CreditInstallment:
+          description: "**刷卡分期期數**   \n提供刷卡分期期數  \n信用卡分期可用參數為:3,6,12,18,24  \n注意事項\
+            ：  \n使用的期數必須先透過申請開通後方能使用，並以申請開通的期數為主。  \n"
+          example: 3,6
+          maxLength: 20
+          type: string
+      required:
+      - CreditInstallment
+      type: object
+    AioCheckOutCreditPeriodOption:
+      properties:
+        PeriodAmount:
+          description: "**每次授權金額**  \n每次要授權(扣款)的金額。  \n注意事項：  \n綠界會依此次授權金額`PeriodAmount`所\
+            設定的金額做為之後固定授權的金額。  \n交易金額`TotalAmount`設定金額必須和授權金額`PeriodAmount`相同。  \n\
+            請帶整數，不可有小數點。僅限新台幣。\n"
+          type: integer
+        PeriodType:
+          $ref: '#/components/schemas/CreditPeriodTypeEnum'
+        Frequency:
+          description: "**執行頻率**  \n此參數用來定義多久要執行一次  \n注意事項：  \n至少要大於等於 1 次以上。  \n當\
+            \ `PeriodType` 設為 `D` 時，最多可設 `365` 次。   \n當 `PeriodType` 設為 `M` 時，最多可設\
+            \ `12` 次。    \n當 `PeriodType` 設為 `Y` 時，最多可設 `1` 次。\n"
+          maximum: 365
+          minimum: 1
+          type: integer
+        ExecTimes:
+          description: "**執行次數**  \n總共要執行幾次。  \n注意事項：  \n至少要大於 1 次以上。  \n當 `PeriodType`\
+            \ 設為 `D` 時，最多可設 `999`次。  \n當 `PeriodType` 設為 `M` 時，最多可設 `99`次。  \n當 `PeriodType`\
+            \ 設為 `Y` 時，最多可設 `9` 次。  \n\n例 1：  \n當信用卡定期定額扣款為每個月扣 1 次500 元，總共要扣 12次\
+            \  \n`TotalAmount`參數請帶 `500`\n`PeriodAmount`=`500`  \n`PeriodType`=`M`\
+            \  \n`Frequency`=`1`  \n`ExecTimes`=`12`   \n例 2：  \n當信用卡定期定額扣款為 6000\
+            \ 元，每 6 個月扣 1 次，總共要扣 2 次時   \n交易金額`TotalAmount`參數請帶 `6000`  \n`PeriodType`=`M`\
+            \  \n`Frequency`=`6`  \n`ExecTimes`=`2`  \n"
+          maximum: 999
+          minimum: 1
+          type: integer
+        PeriodReturnURL:
+          description: "**定期定額的執行結果回應URL**  \n若交易是信用卡定期定額的方式，則每次執行授權完，會將授權結果回傳到這個設\
+            定的 URL。  \n回覆內容請參考。  \n"
+          maxLength: 200
+          type: string
+      required:
+      - ExecTimes
+      - Frequency
+      - PeriodAmount
+      - PeriodType
+      type: object
+    AioCheckOutInvoiceOption:
+      properties:
+        RelateNumber:
+          description: |
+            **特店自訂編號** 此為特店自訂編號，編號均為唯一值不可重複使用。
+          example: Tea0001
+          maxLength: 30
+          type: string
+        CustomerID:
+          description: |
+            **客戶編號** 該參數有值時，僅接受『英文、數字、下底線』等字元。
+          maxLength: 20
+          pattern: ^[\w\d_]*$
+          type: string
+        CustomerIdentifier:
+          description: |
+            **統一編號** 該參數有值時，請帶固定長度為數字 8 碼。
+          example: "53348111"
+          maximum: 8
+          type: string
+        CustomerName:
+          description: "**客戶名稱**   \n當列印註記`Print`為 `1`(列印)時，則該參數必須有值。  \n該參數有值時，僅接\
+            受『中、英文及數字』等字元。  \n請將參數值做 UrlEncode 方式編碼。  \n"
+          example: 綠界電子支付股份有限公司
+          maximum: 60
+          type: string
+        CustomerAddr:
+          description: "**客戶地址**   \n當列印註記`Print`為 `1`(列印)時，則該參數必須有值。  \n當該參數有值時，請\
+            注意特殊字元轉換 。   \n請將參數值做 UrlEncode 方式編碼。\n"
+          example: 臺北市南港區三重路 19-2 號 5 樓
+          maxLength: 200
+          type: string
+        CustomerPhone:
+          description: "**客戶手機號碼**  \n當客戶電子信箱`CustomerEmail`為空字串時，則該參數必須有值。  \n當該參\
+            數有值時，則格式為數字。  \n注意事項：  \n請填手機號碼，不能填市話因為要收簡訊通知用  \n"
+          example: "912345678"
+          maxLength: 20
+          type: string
+        CustomerEmail:
+          description: "**客戶電子信箱**  \n當客戶手機號碼`CustomerPhone`為空字串時，則該參數必須有值。  \n當該參\
+            數有值時，則格式需符合 EMAIL格式。  \n請將參數值做 UrlEncode 方式編碼。  \n"
+          example: abc@ecpay.com.tw
+          maxLength: 200
+          type: string
+        ClearanceMark:
+          $ref: '#/components/schemas/ClearanceMarkEnum'
+        TaxType:
+          $ref: '#/components/schemas/TaxTypeEnum'
+        CarruerType:
+          $ref: '#/components/schemas/CarruerTypeEnum'
+        CarruerNum:
+          description: "**載具編號**  \n1. 當載具類別 `CarruerType`=``無載具)，請帶空字串。  \n2. 當載具\
+            類別`CarruerType`=`1`(綠界科技電子發票載具)時，請帶空字串，系統會自動帶入值，為合作特店載具統一編號+自訂編號(RelateNumber)。\
+            \  \n3. 當載具類別`CarruerType`=`2`(買受人之自然人憑證)時，則請帶固定長度為16且格式 為2碼大寫英文字母加上14碼\
+            數字。  \n4. 當載具類別`CarruerType`=`3`(買受人之手機條碼)時，則請帶固定長度為 8且格式為 1 碼斜線「/」加上由\
+            \ 7 碼數字及大寫英文字母及+-.符號組成。  \n\n注意事項：  \n1. 若手機條碼中有加號，可能在介接驗證時 發生錯誤，請將加號改\
+            為空白字元，產生 驗證碼。  \n2. 英文、數字、符號僅接受半形字  \n3. 若載具編號為手機條碼載具時，請先呼叫B2C電子發票介接技術\
+            文件手機條碼載驗證ＡＰＩ進行檢核  \n"
+          maxLength: 64
+          type: string
+        Donation:
+          $ref: '#/components/schemas/InvoiceDonationEunm'
+        LoveCode:
+          description: "**捐贈碼**  \n消費者選擇捐贈發票則於此欄位須填入受贈單位之捐贈碼。  \n1. 若捐贈註記 `Donation`=\
+            \ `1` (捐贈)時，此欄位須有值。  \n2. 捐贈碼以阿拉伯數字為限，最少三碼，最多七碼。內容定位採「文字格式」，首位可以為零。  \
+            \ \n"
+          example: "168001"
+          maxLength: 7
+          type: string
+        Print:
+          $ref: '#/components/schemas/InvoicePrintEnum'
+        InvoiceItemName:
+          description: "**商品名稱**  \n預設不可為空字串且格式為 名稱 1 | 名稱 2 | 名稱 3 | … | 名稱 n，當含有\
+            二筆或以上的商品名稱時，則以「|」符號區隔。  \n將參數值以 UrlEncode 方式編碼。  \n"
+          example: 名稱1|名稱2|名稱3
+          maxLength: 100
+          type: string
+        InvoiceItemCount:
+          description: "**商品數量**  \n預設不可為空字串且格式為 數量 1 | 數量 2 | 數量 3 | … | 數量 n，當含有\
+            二筆或以上的商品名稱時，則以「|」符號區隔。\n"
+          example: 1|1
+          type: string
+        InvoiceItemWord:
+          description: "**商品單位**  \n商品單位若超過二筆以上請以「|」符號區隔單位最大長度為 6 碼。  \n請將參數做 UrlEncode\
+            \ 方式編碼。\n"
+          type: string
+        InvoiceItemPrice:
+          description: "**商品價格**  \n預設不可為空字串且格式為 價格 1 | 價格 2 | 價格 3 | … | 價格 n，當含有\
+            二筆或以上的商品價格時，則以「|」符號區隔。\n"
+          type: string
+        InvoiceItemTaxType:
+          description: "**商品課稅別**  \n1：應稅  \n2：零稅率  \n3：免稅  \n注意事項：  \n1. 預設為空字串，當\
+            課稅類別 [TaxType] = 9 時，此欄位不可為空。  \n2. 格式為課稅 類別 1 | 課稅類別 2 | 課稅類別 3 | … |\
+            \ 課稅類別 n。當含有二筆或以上的商品課稅類別時，則以「|」符號區隔。  \n3. 課稅類別為混合稅率時，需含二筆或 以 上 的 商 品\
+            \ 課 稅   別[InvoiceItemTaxType]，且至少需有一筆商品課稅別為應稅及至少需有一筆商品課稅別為免稅或零稅率，即混稅發票\
+            只能 1.應稅+免稅 2.應稅+零稅率，免稅和零稅率發票不能同時開立。\n"
+          example: 1|1|3
+          type: string
+        InvoiceRemark:
+          description: |
+            **備註** 當該參數有值時，請將參數值做UrlEncode 方式編碼。
+          type: string
+        DelayDay:
+          description: "**延遲天數**  \n本參數值請帶 0~15(天)，當天數為 0 時，則付款完成後立即開立發票。\n"
+          maximum: 15
+          minimum: 0
+          type: integer
+        InvType:
+          description: "**字軌類別**  \n若為一般稅額時，請帶 07。  \n預設值：07  \n"
+          maxLength: 2
+          type: string
+      required:
+      - DelayDay
+      - Donation
+      - InvType
+      - InvoiceItemCount
+      - InvoiceItemName
+      - InvoiceItemPrice
+      - InvoiceItemWord
+      - Print
+      - RelateNumber
+      - TaxType
+      type: object
+    OrderResult:
+      properties:
+        MerchantID:
+          description: |
+            **特店編號**
+          example: "2000132"
+          maxLength: 10
+          type: string
+        MerchantTradeNo:
+          description: |
+            **特店交易編號** 訂單產生時傳送給綠界的特店交易編號。英數字大小寫混合
+          example: 123456abc
+          maxLength: 20
+          pattern: ^[\w\d]*$
+          type: string
+        StoreID:
+          description: |
+            **特店旗下店舖代號** 提供特店填入分店代號使用，僅可用英數字大小寫混合。
+          maxLength: 20
+          pattern: ^[\w\d]*$
+          type: string
+        RtnCode:
+          description: "**交易狀態**  \n若回傳值為 1 時，為付款成功  \n其餘代碼皆為交易異常，請至廠商管理後台確認後再出貨。\n"
+          example: 1
+          type: integer
+        RtnMsg:
+          description: "**交易訊息**\nServer POST 成功回傳:交易成功  \nServer POST 補送通知回傳:paid\
+            \  \nClient POST 成功回傳:Succeeded  \n"
+          example: 交易成功
+          maxLength: 200
+          type: string
+        TradeNo:
+          description: |
+            **綠界的交易編號** 請保存綠界的交易編號與特店交易編號[MerchantTradeNo]的關連。
+          example: "20120315174058256424"
+          maxLength: 20
+          type: string
+        TradeAmt:
+          description: |
+            **交易金額**
+          example: 20000
+          minimum: 0
+          type: integer
+        PaymentDate:
+          description: |
+            **付款時間** 格式為 yyyy/MM/dd HH:mm:ss
+          example: 2012/03/16 12:03:12
+          format: ecpay-date-time
+          type: string
+        PaymentType:
+          $ref: '#/components/schemas/ReturnPaymentTypeEnum'
+        PaymentTypeChargeFee:
+          description: |
+            **通路費**
+          example: 25
+          minimum: 0
+          type: integer
+        TradeDate:
+          description: |
+            **訂單成立時間** 格式為 yyyy/MM/dd HH:mm:ss
+          example: 2012/03/15 17:40:58
+          format: ecpay-date-time
+          type: string
+        CheckMacValue:
+          description: |
+            **檢查碼** 特店必須檢查檢查碼`CheckMacValue`來驗證，請參考附錄檢查碼機制。
+          type: string
+        SimulatePaid:
+          $ref: '#/components/schemas/SimulatePaidEnum'
+        CustomField1:
+          description: "**自訂名稱欄位1**  \n提供合作廠商使用記錄用客製化使用欄位\n"
+          type: string
+        CustomField2:
+          description: "**自訂名稱欄位2**  \n提供合作廠商使用記錄用客製化使用欄位\n"
+          type: string
+        CustomField3:
+          description: "**自訂名稱欄位3**  \n提供合作廠商使用記錄用客製化使用欄位\n"
+          type: string
+        CustomField4:
+          description: "**自訂名稱欄位4**  \n提供合作廠商使用記錄用客製化使用欄位\n"
+          type: string
+      required:
+      - CheckMacValue
+      - CustomField1
+      - CustomField2
+      - CustomField3
+      - CustomField4
+      - MerchantID
+      - MerchantTradeNo
+      - PaymentDate
+      - PaymentType
+      - PaymentTypeChargeFee
+      - RtnCode
+      - RtnMsg
+      - SimulatePaid
+      - StoreID
+      - TradeAmt
+      - TradeDate
+      - TradeNo
+      type: object
+    PeriodOrderResult:
+      properties:
+        MerchantID:
+          description: |
+            **特店編號**
+          example: "2000132"
+          maxLength: 10
+          type: string
+        MerchantTradeNo:
+          description: |
+            **特店交易編號** 訂單產生時傳送給綠界的特店交易編號。英數字大小寫混合
+          example: 123456abc
+          maxLength: 20
+          pattern: ^[\w\d]*$
+          type: string
+        StoreID:
+          description: |
+            **特店旗下店舖代號** 提供特店填入分店代號使用，僅可用英數字大小寫混合。
+          maxLength: 20
+          pattern: ^[\w\d]*$
+          type: string
+        RtnCode:
+          description: "**交易狀態**  \n若回傳值為 1 時，為付款成功  \n其餘代碼皆為交易異常，請至廠商管理後台確認後再出貨。\n"
+          example: 1
+          type: integer
+        RtnMsg:
+          description: "**交易訊息**\nServer POST 成功回傳:交易成功  \nServer POST 補送通知回傳:paid\
+            \  \nClient POST 成功回傳:Succeeded  \n"
+          example: 交易成功
+          maxLength: 200
+          type: string
+        PeriodType:
+          $ref: '#/components/schemas/CreditPeriodTypeEnum'
+        Frequency:
+          description: |
+            **執行頻率**  訂單建立時所設定的執行頻率
+          maximum: 365
+          minimum: 1
+          type: integer
+        ExecTimes:
+          description: |
+            **執行次數**  訂單建立時所設定的執行頻率
+          maximum: 999
+          minimum: 1
+          type: integer
+        Amount:
+          description: |
+            **本次授權金額**  此次所授權的金額
+          example: 2000
+          minimum: 0
+          type: integer
+        Gwsr:
+          description: |
+            **授權交易單號**  此次所授權的交易單號
+          example: 120326
+          type: integer
+        ProcessDate:
+          description: |
+            **處理時間** 處理時間 ( yyyy/MM/dd HH:mm:ss )
+          example: 2013/11/12 12:01:32
+          format: ecpay-date-time
+          type: string
+        AuthCode:
+          description: |
+            **授權碼** 授權碼
+          example: "777777"
+          maximum: 6
+          type: string
+        FirstAuthAmount:
+          description: |
+            **初次授權金額** 定期定額交易的第一筆授權金額。
+          example: 2000
+          minimum: 0
+          type: integer
+        TotalSuccessTimes:
+          description: |
+            **已執行成功次數**  目前已成功授權的次數。
+          example: 3
+          minimum: 0
+          type: integer
+        CheckMacValue:
+          description: |
+            **檢查碼** 特店必須檢查檢查碼`CheckMacValue`來驗證，請參考附錄檢查碼機制。
+          type: string
+        SimulatePaid:
+          $ref: '#/components/schemas/SimulatePaidEnum'
+        CustomField1:
+          description: "**自訂名稱欄位1**  \n提供合作廠商使用記錄用客製化使用欄位\n"
+          type: string
+        CustomField2:
+          description: "**自訂名稱欄位2**  \n提供合作廠商使用記錄用客製化使用欄位\n"
+          type: string
+        CustomField3:
+          description: "**自訂名稱欄位3**  \n提供合作廠商使用記錄用客製化使用欄位\n"
+          type: string
+        CustomField4:
+          description: "**自訂名稱欄位4**  \n提供合作廠商使用記錄用客製化使用欄位\n"
+          type: string
+      required:
+      - Amount
+      - AuthCode
+      - CheckMacValue
+      - CustomField1
+      - CustomField2
+      - CustomField3
+      - CustomField4
+      - ExecTimes
+      - FirstAuthAmount
+      - Frequency
+      - Gwsr
+      - MerchantID
+      - MerchantTradeNo
+      - PeriodType
+      - ProcessDate
+      - RtnCode
+      - RtnMsg
+      - SimulatePaid
+      - StoreID
+      - TotalSuccessTimes
+      type: object
+    InvoicePrintEnum:
+      description: "**列印註記**  \n若為不列印或捐贈註記`Donation`為1(捐贈)時，請帶：`0`。  \n若為列印或統一編號`CustomerIdentifier`有\
+        值時，請帶：`1`  \n"
+      enum:
+      - "0"
+      - "1"
+      type: string
+      x-enum-varnames:
+      - NOT_PRINT
+      - PRINT
+      x-enum-descriptions:
+      - 不列印
+      - 列印
+    InvoiceDonationEunm:
+      description: |
+        **捐贈註記**
+        若為捐贈時，參數請帶：`1`。
+        若為不捐贈或統一編號 `CustomerIdentifier` 有值時，參數請帶：`0`。
+      enum:
+      - "1"
+      - "0"
+      type: string
+      x-enum-varnames:
+      - DONATION
+      - NOT_DONATION
+      x-enum-descriptions:
+      - 捐贈
+      - 不捐贈
+    CarruerTypeEnum:
+      description: "**載具類別**  \n若為無載具時，則請帶空字串。  \n若為特店載具時，則請帶 `1`。  \n若為買受人之自然人憑證號\
+        碼時，則請帶 `2`。  \n若為買受人之手機條碼資料時，則請帶`3`。  \n若統一編號 `CustomerIdentifier` 有值時，則載具\
+        類別不可為特店載具或自然人憑證載具。  \n注意事項：當`Print`有值時，載具類別不得有值。  \n"
+      enum:
+      - ""
+      - "1"
+      - "2"
+      - "3"
+      type: string
+      x-enum-varnames:
+      - NO_CARRIER
+      - SHOP_CARRIER
+      - NATURAL_PERSON_CERTIFICATE_CARRIER
+      - PHONE_BARCODE_CARRIER
+      x-enum-descriptions:
+      - 無載具
+      - 特店載具
+      - 買受人之自然人憑證
+      - 手機條碼
+    TaxTypeEnum:
+      description: "**課稅類別**\n若為應稅，請帶 `1`。  \n若為零稅率，請帶 `2`。  \n若為免稅，請帶 `3`。  \n若為混\
+        合應稅與免稅或零稅率時(限收銀機發票無法分辨時使用，且需通過申請核可)，則請帶 `9`。  \n"
+      enum:
+      - "1"
+      - "2"
+      - "3"
+      - "9"
+      type: string
+      x-enum-varnames:
+      - TAXABLE
+      - ZERO_TAX_RATE
+      - DUTY_FREE
+      - MIXED
+      x-enum-descriptions:
+      - 應稅
+      - 零稅率
+      - 免稅
+      - 混合應稅與免稅或零稅率
+    ClearanceMarkEnum:
+      description: "**通關方式**  \n當課稅類別`TaxType`為 `2`(零稅率)時，則該參數請帶 `1`(非經海關出口)或 `2`(經\
+        海關出口)。\n"
+      enum:
+      - "1"
+      - "2"
+      type: string
+      x-enum-varnames:
+      - NOT_CUSTOMS
+      - CUSTOMS
+      x-enum-descriptions:
+      - 非經海關出口
+      - 經海關出口
+    CreditPeriodTypeEnum:
+      description: "**週期種類**  \n可設定以下參數：  \n`D`：以天為週期  \n`M`：以月為週期  \n`Y`：以年為週期  \n"
+      enum:
+      - D
+      - M
+      - "Y"
+      type: string
+      x-enum-varnames:
+      - DAY
+      - MONTH
+      - YEAR
+      x-enum-descriptions:
+      - 以天為週期
+      - 以月為週期
+      - 以年為週期
+    UnionPayEnum:
+      default: 0
+      description: "**銀聯卡交易選項**  \n可帶入以下選項:  \n`0`: 消費者於交易頁面可選擇是否使用銀聯交易。  \n`1`: 只\
+        使用銀聯卡交易，且綠界會將交易頁面直接導到銀聯網站。  \n`2`: 不可使用銀聯卡，綠界會將交易頁面隱藏銀聯選項。  \n注意事項：  \n1.若\
+        需使用銀聯卡服務，請與綠界提出申請方可使用，測試環境未提供銀聯卡服務。  \n2.不支援信用卡分期付款及定期定額。  \n3.不支援信用卡紅利折抵\
+        \  \n4.不支援信用卡記憶卡號功能\n"
+      enum:
+      - 0
+      - 1
+      - 2
+      example: 0
+      type: integer
+      x-enum-varnames:
+      - NOT_SPECIFIED
+      - SPECIFIED
+      - HIDDEN
+      x-enum-descriptions:
+      - 消費者於交易頁面可選擇是否使用銀聯交易。
+      - 只使用銀聯卡交易，且綠界會將交易頁面直接導到銀聯網站。
+      - 不可使用銀聯卡，綠界會將交易頁面隱藏銀聯選項。
+    RedeemEnum:
+      description: "**信用卡是否使用紅利折抵**  \n設為 Y 時，當綠界特店選擇信用卡付款時，會進入紅利折抵的交易流程。  \n注意事項：\
+        \  \n紅利折抵請參考信用卡紅利折抵辦法  \n"
+      enum:
+      - "Y"
+      example: "Y"
+      type: string
+    SimulatePaidEnum:
+      description: "**是否為模擬付款**  \n回傳值：  \n若為 `1` 時，代表此交易為模擬付款，請勿出貨。  \n若為 `0` 時，代\
+        表此交易非模擬付款。    \n注意事項：  \n特店可透過廠商後台網站來針對單筆訂單模擬綠界回傳付款通知，以方便介接 API 的測試。\n"
+      enum:
+      - 0
+      - 1
+      example: 0
+      type: integer
+      x-enum-varnames:
+      - REAL_PAID
+      - SIMULATED
+      x-enum-descriptions:
+      - 不是模擬付款
+      - 是模擬付款
+    AioCheckPaymentTypeEnum:
+      default: aio
+      description: |
+        **交易類型** 請固定填入 `aio`
+      enum:
+      - aio
+      example: aio
+      type: string
+    ChoosePaymentEnum:
+      description: "**選擇預設付款方式**  \n綠界提供下列付款方式，請於建立訂單時傳送過來:  \n- `Credit`: 信用卡及銀聯卡\
+        (需申請開通)  \n- `WebATM`: 網路 ATM  \n- `ATM`: 自動櫃員機  \n- `CVS`: 超商代碼   \n- `BARCODE`:\
+        \ 超商條碼  \n- `ALL`: 不指定付款方式，由綠界顯示付款方式選擇頁面。  \n\n注意事項：\n1.若為手機版時不支援下列付款方式:\n\
+        \  - WebATM:網路 ATM\n\n2.如需要不透過綠界畫面取得 `ATM`、`CVS`、`BARCODE` 的繳費代碼，請參考 FAQ。\n"
+      enum:
+      - Credit
+      - WebATM
+      - ATM
+      - CVS
+      - BARCODE
+      - ALL
+      example: Credit
+      type: string
+      x-enum-descriptions:
+      - 信用卡及銀聯卡(需申請開通)
+      - 網路 ATM
+      - 自動櫃員機
+      - 超商代碼
+      - 超商條碼
+      - 不指定付款方式，由綠界顯示付款方式選擇頁面。
+    NeedExtraPaidInfoEnum:
+      description: "**是否需要額外的付款資訊**   \n額外的付款資訊：  \n若不回傳額外的付款資訊時，參數值請傳：`Ｎ`；  \n若要回\
+        傳額外的付款資訊時，參數值請傳：`Ｙ`，付款完成後綠界會以 Server POST 方式回傳額外付款資訊。    \n注意事項：  \n回傳額外付款\
+        資訊參數請參考-額外回傳的參數\n"
+      enum:
+      - "Y"
+      - "N"
+      type: string
+      x-enum-descriptions:
+      - 要回傳額外的付款資訊
+      - 不回傳額外的付款資訊
+    InvoiceMarkEnum:
+      description: "**電子發票開立註記**  \n此參數為付款完成後同時開立電子發票。  \n若要使用時，該參數須設定為「Y」，同時還要設定「\
+        電子發票介接相關參數」  \n注意事項：  \n正式環境欲使用電子發票功能，須與綠界申請開通，若未開通請致電客服中心 `(02) 2655-1775`。\
+        \  \n"
+      enum:
+      - "Y"
+      - "N"
+      maxLength: 1
+      type: string
+    EncryptTypeEnum:
+      default: 1
+      description: |
+        **CheckMacValue加密類型** 請固定填入 `1`，使用 SHA256 加密。
+      enum:
+      - 1
+      example: 1
+      type: integer
+      x-enum-varnames:
+      - SHA256
+    LanguageEnum:
+      description: "**語系設定**  \n預設語系為中文，若要變更語系參數值請帶：  \n- 英語：`ENG`  \n- 韓語：`KOR` \
+        \ \n- 日語：`JPN`  \n- 簡體中文：`CHI`  \n"
+      enum:
+      - ENG
+      - KOR
+      - JPN
+      - CHI
+      example: ENG
+      type: string
+      x-enum-descriptions:
+      - 英語
+      - 韓語
+      - 日語
+      - 簡體中文
+    BindingCardEnum:
+      description: "**記憶卡號**  \n使用記憶信用卡  \n使用：請傳 `1`    \n不使用：請傳 `0`  \n"
+      enum:
+      - 1
+      - 0
+      example: 1
+      type: integer
+      x-enum-varnames:
+      - BINDING
+      - NOT_BINDING
+      x-enum-descriptions:
+      - 記憶信用卡
+      - 不記憶
+    ChooseSubPaymentEnum:
+      description: "**付款子項目**  \n若設定此參數，建立訂單將轉導至綠界訂單成立頁，依設定的付款方式及付款子項目帶入訂單，無法選擇其他付\
+        款子項目。  \n請參考付款方式一覽表  \n"
+      enum:
+      - TAISHIN
+      - ESUN
+      - BOT
+      - FUBON
+      - CHINATRUST
+      - FIRST
+      - CATHAY
+      - MEGA
+      - LAND
+      - TACHONG
+      - SINOPAC
+      - CVS
+      - OK
+      - FAMILY
+      - HILIFE
+      - IBON
+      - BARCODE
+      - ""
+      example: TAISHIN
+      maxLength: 20
+      type: string
+    ReturnPaymentTypeEnum:
+      description: |
+        **特店選擇的付款方式** 請參考回覆付款方式一覽表
+      enum:
+      - WebATM_TAISHIN
+      - WebATM_ESUN
+      - WebATM_BOT
+      - WebATM_FUBON
+      - WebATM_CHINATRUST
+      - WebATM_FIRST
+      - WebATM_CATHAY
+      - WebATM_MEGA
+      - WebATM_LAND
+      - WebATM_TACHONG
+      - WebATM_SINOPAC
+      - ATM_TAISHIN
+      - ATM_ESUN
+      - ATM_BOT
+      - ATM_FUBON
+      - ATM_CHINATRUST
+      - ATM_FIRST
+      - ATM_LAND
+      - ATM_CATHAY
+      - ATM_TACHONG
+      - CVS_CVS
+      - CVS_OK
+      - CVS_FAMILY
+      - CVS_HILIFE
+      - CVS_IBON
+      - BARCODE_BARCODE
+      - Credit_CreditCard
+      example: Credit_CreditCard
+      type: string
