@@ -4,23 +4,28 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/go-errors/errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 )
 
 const (
 	GetTokenByBindingCardURL     = "https://ecpg.funpoint.com.tw/Merchant/GetTokenbyBindingCard"
 	GetTokenByBindingCardTestURL = "https://ecpg-stage.funpoint.com.tw/Merchant/GetTokenbyBindingCard"
+	CreateBindCardURL            = "https://ecpg.funpoint.com.tw/Merchant/CreateBindCard"
+	CreateBindCardTestURL        = "https://ecpg-stage.funpoint.com.tw/Merchant/CreateBindCard"
 )
+
+type CreateBindCardCall struct {
+	Client                    *Client
+	CreateBindCardRequest     *CreateBindCardRequest
+	CreateBindCardRequestData *CreateBindCardRequestData
+}
 
 type GetTokenByBindingCardRequestCall struct {
 	Client                           *Client
@@ -32,6 +37,56 @@ type CreatePaymentWithCardIDCall struct {
 	Client                             *Client
 	CreatePaymentWithCardIDRequest     *CreatePaymentWithCardIDRequest
 	CreatePaymentWithCardIDRequestData *CreatePaymentWithCardIDRequestData
+}
+
+type CreateBindCardRequest struct {
+	MerchantID string   `json:"MerchantID"`
+	RqHeader   RqHeader `json:"RqHeader"`
+	Data       string   `json:"Data"`
+}
+
+type CreateBindCardRequestData struct {
+	MerchantID       string `json:"MerchantID"`
+	BindCardPayToken string `json:"BindCardPayToken"`
+	MerchantMemberID string `json:"MerchantMemberID"`
+}
+
+type CreateBindCardResponse struct {
+	MerchantID string   `json:"MerchantID"`
+	RqHeader   RqHeader `json:"RqHeader"`
+	TransCode  int      `json:"TransCode"`
+	TransMsg   string   `json:"TransMsg"`
+	Data       string   `json:"Data"`
+}
+
+type CreateBindCardResponseData struct {
+	RtnCode    int    `json:"RtnCode"`
+	RtnMsg     string `json:"RtnMsg"`
+	PlatformID string `json:"PlatformID"`
+	MerchantID string `json:"MerchantID"`
+	BindCardID string `json:"BindCardID"`
+	IsSameCard bool   `json:"IsSameCard"`
+	OrderInfo  struct {
+		MerchantTradeNo string `json:"MerchantTradeNo"`
+		TradeNo         string `json:"TradeNo"`
+		PaymentDate     string `json:"PaymentDate"`
+		TradeAmt        int    `json:"TradeAmt"`
+		PaymentType     string `json:"PaymentType"`
+		TradeDate       string `json:"TradeDate"`
+		ChargeFee       int    `json:"ChargeFee"`
+		TradeStatus     string `json:"TradeStatus"`
+	} `json:"OrderInfo"`
+	CardInfo struct {
+		AuthCode        string `json:"AuthCode"`
+		Gwsr            int    `json:"Gwsr"`
+		ProcessDate     string `json:"ProcessDate"`
+		Amount          int    `json:"Amount"`
+		IssuingBank     string `json:"IssuingBank"`
+		IssuingBankCode string `json:"IssuingBankCode "`
+		Card6No         string `json:"Card6No"`
+		Card4No         string `json:"Card4No"`
+		Eci             int    `json:"Eci"`
+	} `json:"CardInfo"`
 }
 
 type CreatePaymentWithCardIDRequest struct {
@@ -80,6 +135,10 @@ type CreatePaymentWithCardIDResponseData struct {
 		IssuingBank     string `json:"IssuingBank"`
 		IssuingBankCode string `json:"IssuingBankCode "`
 	} `json:"CardInfo"`
+
+	ThreeDInfo struct {
+		ThreeDURL string `json:"ThreeDURL"`
+	} `json:"ThreeDInfo"`
 }
 
 type GetTokenByBindingCardRequest struct {
@@ -166,12 +225,6 @@ func Aes128(plaintext string, key string, iv string) string {
 	return base64.StdEncoding.EncodeToString(ciphertext)
 }
 
-func SHA256(str string) string {
-	sum := sha256.Sum256([]byte(str))
-	checkMac := strings.ToUpper(hex.EncodeToString(sum[:]))
-	return checkMac
-}
-
 func DecodeAes128(cipherText string, key string, iv string) string {
 	bIV := []byte(iv)
 	bKey := []byte(key)
@@ -241,6 +294,12 @@ func (c *Client) NewCreatePaymentWithCardID() *CreatePaymentWithCardIDCall {
 	return r
 }
 
+func (c *Client) NewCreateBindCard() *CreateBindCardCall {
+	r := new(CreateBindCardCall)
+	r.Client = c
+	return r
+}
+
 func (c *CreatePaymentWithCardIDCall) Request() *CreatePaymentWithCardIDCall {
 	c.CreatePaymentWithCardIDRequestData = &CreatePaymentWithCardIDRequestData{}
 	c.CreatePaymentWithCardIDRequest = &CreatePaymentWithCardIDRequest{}
@@ -250,6 +309,12 @@ func (c *CreatePaymentWithCardIDCall) Request() *CreatePaymentWithCardIDCall {
 func (c *GetTokenByBindingCardRequestCall) Request() *GetTokenByBindingCardRequestCall {
 	c.GetTokenByBindingCardRequestData = &GetTokenByBindingCardRequestData{}
 	c.GetTokenByBindingCardRequest = &GetTokenByBindingCardRequest{}
+	return c
+}
+
+func (c *CreateBindCardCall) Request() *CreateBindCardCall {
+	c.CreateBindCardRequestData = &CreateBindCardRequestData{}
+	c.CreateBindCardRequest = &CreateBindCardRequest{}
 	return c
 }
 
@@ -269,6 +334,16 @@ func (c *CreatePaymentWithCardIDCall) CreatePaymentWithCardID() *CreatePaymentWi
 	c.CreatePaymentWithCardIDRequest.RqHeader.Revision = "1.0.0"
 	jsonData, _ := json.Marshal(c.CreatePaymentWithCardIDRequestData)
 	c.CreatePaymentWithCardIDRequest.Data = Aes128(url.QueryEscape(string(jsonData)), c.Client.hashKey, c.Client.hashIV)
+	return c
+}
+
+func (c *CreateBindCardCall) CreateBindCard() *CreateBindCardCall {
+	c.CreateBindCardRequest.MerchantID = c.Client.merchantID
+	c.CreateBindCardRequest.RqHeader.Timestamp = int(time.Now().Unix())
+	c.CreateBindCardRequest.RqHeader.Revision = "1.0.0"
+	jsonData, _ := json.Marshal(c.CreateBindCardRequestData)
+	fmt.Println(string(jsonData))
+	c.CreateBindCardRequest.Data = Aes128(url.QueryEscape(string(jsonData)), c.Client.hashKey, c.Client.hashIV)
 	return c
 }
 
@@ -309,7 +384,7 @@ func (c *GetTokenByBindingCardRequestCall) Do(URL string) (*GetTokenByBindingCar
 }
 
 func (c *CreatePaymentWithCardIDCall) Do(URL string) (*CreatePaymentWithCardIDResponseData, error) {
-	marshal, err := json.Marshal(c.CreatePaymentWithCardIDRequestData)
+	marshal, err := json.Marshal(c.CreatePaymentWithCardIDRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -335,6 +410,42 @@ func (c *CreatePaymentWithCardIDCall) Do(URL string) (*CreatePaymentWithCardIDRe
 		dataString := DecodeAes128(unescape, c.Client.hashKey, c.Client.hashIV)
 		responseData := new(CreatePaymentWithCardIDResponseData)
 		err = json.Unmarshal([]byte(dataString), responseData)
+		if err != nil {
+			return nil, err
+		}
+		return responseData, nil
+	}
+}
+
+func (c *CreateBindCardCall) Do(URL string) (*CreateBindCardResponseData, error) {
+	marshal, err := json.Marshal(c.CreateBindCardRequest)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshal))
+	request, err := SendRequest(marshal, URL)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	response := new(CreateBindCardResponse)
+	err = json.Unmarshal(request, response)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	if response.TransCode != 1 {
+		return nil, errors.New(response.TransMsg)
+	} else {
+
+		dataString := DecodeAes128(response.Data, c.Client.hashKey, c.Client.hashIV)
+		unescape, err := url.QueryUnescape(dataString)
+		if err != nil {
+			return nil, err
+		}
+		responseData := new(CreateBindCardResponseData)
+		err = json.Unmarshal([]byte(unescape), responseData)
 		if err != nil {
 			return nil, err
 		}
