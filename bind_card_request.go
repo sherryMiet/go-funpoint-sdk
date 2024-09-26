@@ -189,7 +189,7 @@ type OrderInfo struct {
 	TotalAmount       int    `json:"TotalAmount"`
 	ReturnURL         string `json:"ReturnURL"`
 	TradeDesc         string `json:"TradeDesc"`
-	ItemName          string `json:" ItemName"`
+	ItemName          string `json:"ItemName"`
 }
 
 type BindCardResponse struct {
