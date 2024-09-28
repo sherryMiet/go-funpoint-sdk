@@ -15,10 +15,12 @@ import (
 )
 
 const (
-	GetTokenByBindingCardURL     = "https://ecpg.funpoint.com.tw/Merchant/GetTokenbyBindingCard"
-	GetTokenByBindingCardTestURL = "https://ecpg-stage.funpoint.com.tw/Merchant/GetTokenbyBindingCard"
-	CreateBindCardURL            = "https://ecpg.funpoint.com.tw/Merchant/CreateBindCard"
-	CreateBindCardTestURL        = "https://ecpg-stage.funpoint.com.tw/Merchant/CreateBindCard"
+	GetTokenByBindingCardURL       = "https://ecpg.funpoint.com.tw/Merchant/GetTokenbyBindingCard"
+	GetTokenByBindingCardTestURL   = "https://ecpg-stage.funpoint.com.tw/Merchant/GetTokenbyBindingCard"
+	CreateBindCardURL              = "https://ecpg.funpoint.com.tw/Merchant/CreateBindCard"
+	CreateBindCardTestURL          = "https://ecpg-stage.funpoint.com.tw/Merchant/CreateBindCard"
+	CreatePaymentWithCardIDURL     = "https://ecpg.funpoint.com.tw/Merchant/CreatePaymentWithCardID"
+	CreatePaymentWithCardIDTestURL = "https://ecpg-stage.funpoint.com.tw/Merchant/CreatePaymentWithCardID"
 )
 
 type CreateBindCardCall struct {
@@ -87,6 +89,9 @@ type CreateBindCardResponseData struct {
 		Card4No         string `json:"Card4No"`
 		Eci             int    `json:"Eci"`
 	} `json:"CardInfo"`
+	ThreeDInfo struct {
+		ThreeDURL string `json:"ThreeDURL"`
+	} `json:"ThreeDInfo"`
 }
 
 type CreatePaymentWithCardIDRequest struct {
@@ -133,9 +138,8 @@ type CreatePaymentWithCardIDResponseData struct {
 		Card6No         string `json:"Card6No"`
 		Card4No         string `json:"Card4No"`
 		IssuingBank     string `json:"IssuingBank"`
-		IssuingBankCode string `json:"IssuingBankCode "`
+		IssuingBankCode string `json:"IssuingBankCode"`
 	} `json:"CardInfo"`
-
 	ThreeDInfo struct {
 		ThreeDURL string `json:"ThreeDURL"`
 	} `json:"ThreeDInfo"`
@@ -403,13 +407,14 @@ func (c *CreatePaymentWithCardIDCall) Do(URL string) (*CreatePaymentWithCardIDRe
 	if response.TransCode != 1 {
 		return nil, errors.New(response.TransMsg)
 	} else {
-		unescape, err := url.QueryUnescape(response.Data)
+
+		dataString := DecodeAes128(response.Data, c.Client.hashKey, c.Client.hashIV)
+		unescape, err := url.QueryUnescape(dataString)
 		if err != nil {
 			return nil, err
 		}
-		dataString := DecodeAes128(unescape, c.Client.hashKey, c.Client.hashIV)
 		responseData := new(CreatePaymentWithCardIDResponseData)
-		err = json.Unmarshal([]byte(dataString), responseData)
+		err = json.Unmarshal([]byte(unescape), responseData)
 		if err != nil {
 			return nil, err
 		}
