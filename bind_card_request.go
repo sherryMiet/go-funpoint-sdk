@@ -21,6 +21,8 @@ const (
 	CreateBindCardTestURL          = "https://ecpg-stage.funpoint.com.tw/Merchant/CreateBindCard"
 	CreatePaymentWithCardIDURL     = "https://ecpg.funpoint.com.tw/Merchant/CreatePaymentWithCardID"
 	CreatePaymentWithCardIDTestURL = "https://ecpg-stage.funpoint.com.tw/Merchant/CreatePaymentWithCardID"
+	DeleteMemberBindCardURL        = "https://ecpg.funpoint.com.tw/Merchant/DeleteMemberBindCard"
+	DeleteMemberBindCardTestURL    = "https://ecpg-stage.funpoint.com.tw/Merchant/DeleteMemberBindCard"
 )
 
 type CreateBindCardCall struct {
@@ -39,6 +41,35 @@ type CreatePaymentWithCardIDCall struct {
 	Client                             *Client
 	CreatePaymentWithCardIDRequest     *CreatePaymentWithCardIDRequest
 	CreatePaymentWithCardIDRequestData *CreatePaymentWithCardIDRequestData
+}
+
+type DeleteMemberBindCardCall struct {
+	Client                          *Client
+	DeleteMemberBindCardRequest     *DeleteMemberBindCardRequest
+	DeleteMemberBindCardRequestData *DeleteMemberBindCardRequestData
+}
+
+type DeleteMemberBindCardRequest struct {
+	MerchantID string   `json:"MerchantID"`
+	RqHeader   RqHeader `json:"RqHeader"`
+	Data       string   `json:"Data"`
+}
+
+type DeleteMemberBindCardRequestData struct {
+	MerchantID string `json:"MerchantID"`
+	BindCardID string `json:"BindCardID"`
+}
+
+type DeleteMemberBindCardResponse struct {
+	MerchantID string   `json:"MerchantID"`
+	RqHeader   RqHeader `json:"RqHeader"`
+	TransCode  int      `json:"TransCode"`
+	TransMsg   string   `json:"TransMsg"`
+	Data       string   `json:"Data"`
+}
+type DeleteMemberBindCardResponseData struct {
+	RtnCode int    `json:"RtnCode"`
+	RtnMsg  string `json:"RtnMsg"`
 }
 
 type CreateBindCardRequest struct {
@@ -303,7 +334,11 @@ func (c *Client) NewCreateBindCard() *CreateBindCardCall {
 	r.Client = c
 	return r
 }
-
+func (c *Client) NewDeleteMemberBindCard() *DeleteMemberBindCardCall {
+	r := new(DeleteMemberBindCardCall)
+	r.Client = c
+	return r
+}
 func (c *CreatePaymentWithCardIDCall) Request() *CreatePaymentWithCardIDCall {
 	c.CreatePaymentWithCardIDRequestData = &CreatePaymentWithCardIDRequestData{}
 	c.CreatePaymentWithCardIDRequest = &CreatePaymentWithCardIDRequest{}
@@ -319,6 +354,12 @@ func (c *GetTokenByBindingCardRequestCall) Request() *GetTokenByBindingCardReque
 func (c *CreateBindCardCall) Request() *CreateBindCardCall {
 	c.CreateBindCardRequestData = &CreateBindCardRequestData{}
 	c.CreateBindCardRequest = &CreateBindCardRequest{}
+	return c
+}
+
+func (c *DeleteMemberBindCardCall) Request() *DeleteMemberBindCardCall {
+	c.DeleteMemberBindCardRequest = &DeleteMemberBindCardRequest{}
+	c.DeleteMemberBindCardRequestData = &DeleteMemberBindCardRequestData{}
 	return c
 }
 
@@ -348,6 +389,15 @@ func (c *CreateBindCardCall) CreateBindCard() *CreateBindCardCall {
 	jsonData, _ := json.Marshal(c.CreateBindCardRequestData)
 	fmt.Println(string(jsonData))
 	c.CreateBindCardRequest.Data = Aes128(url.QueryEscape(string(jsonData)), c.Client.hashKey, c.Client.hashIV)
+	return c
+}
+func (c *DeleteMemberBindCardCall) DeleteMemberBindCard() *DeleteMemberBindCardCall {
+	c.DeleteMemberBindCardRequest.MerchantID = c.Client.merchantID
+	c.DeleteMemberBindCardRequest.RqHeader.Timestamp = int(time.Now().Unix())
+	c.DeleteMemberBindCardRequest.RqHeader.Revision = "1.0.0"
+	jsonData, _ := json.Marshal(c.DeleteMemberBindCardRequestData)
+	fmt.Println(string(jsonData))
+	c.DeleteMemberBindCardRequest.Data = Aes128(url.QueryEscape(string(jsonData)), c.Client.hashKey, c.Client.hashIV)
 	return c
 }
 
@@ -450,6 +500,42 @@ func (c *CreateBindCardCall) Do(URL string) (*CreateBindCardResponseData, error)
 			return nil, err
 		}
 		responseData := new(CreateBindCardResponseData)
+		err = json.Unmarshal([]byte(unescape), responseData)
+		if err != nil {
+			return nil, err
+		}
+		return responseData, nil
+	}
+}
+
+func (c *DeleteMemberBindCardCall) Do(URL string) (*DeleteMemberBindCardResponseData, error) {
+	marshal, err := json.Marshal(c.DeleteMemberBindCardRequest)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshal))
+	request, err := SendRequest(marshal, URL)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	response := new(CreateBindCardResponse)
+	err = json.Unmarshal(request, response)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	if response.TransCode != 1 {
+		return nil, errors.New(response.TransMsg)
+	} else {
+
+		dataString := DecodeAes128(response.Data, c.Client.hashKey, c.Client.hashIV)
+		unescape, err := url.QueryUnescape(dataString)
+		if err != nil {
+			return nil, err
+		}
+		responseData := new(DeleteMemberBindCardResponseData)
 		err = json.Unmarshal([]byte(unescape), responseData)
 		if err != nil {
 			return nil, err
