@@ -23,7 +23,16 @@ const (
 	CreatePaymentWithCardIDTestURL = "https://ecpg-stage.funpoint.com.tw/Merchant/CreatePaymentWithCardID"
 	DeleteMemberBindCardURL        = "https://ecpg.funpoint.com.tw/Merchant/DeleteMemberBindCard"
 	DeleteMemberBindCardTestURL    = "https://ecpg-stage.funpoint.com.tw/Merchant/DeleteMemberBindCard"
+	QueryTradeTestURL              = "https://ecpayment-stage.funpoint.com.tw/1.0.0/CreditDetail/QueryTrade"
+	QueryTradeURL                  = "https://ecpayment.funpoint.com.tw/1.0.0/CreditDetail/QueryTrade"
+	RefundURL                      = "https://ecpayment.funpoint.com.tw/1.0.0/Credit/DoAction"
 )
+
+type RefundCall struct {
+	Client            *Client
+	RefundRequest     *RefundRequest
+	RefundRequestData *RefundRequestData
+}
 
 type CreateBindCardCall struct {
 	Client                    *Client
@@ -49,6 +58,77 @@ type DeleteMemberBindCardCall struct {
 	DeleteMemberBindCardRequestData *DeleteMemberBindCardRequestData
 }
 
+type QueryTradeCall struct {
+	Client                *Client
+	QueryTradeRequest     *QueryTradeRequest
+	QueryTradeRequestData *QueryTradeRequestData
+}
+
+type RefundRequest struct {
+	MerchantID string   `json:"MerchantID"`
+	RqHeader   RqHeader `json:"RqHeader"`
+	Data       string   `json:"Data"`
+}
+
+type RefundRequestData struct {
+	MerchantID      string `json:"MerchantID"`
+	MerchantTradeNo string `json:"MerchantTradeNo"`
+	TradeNo         string `json:"TradeNo"`
+	Action          string `json:"Action"`
+	TotalAmount     int    `json:"TotalAmount"`
+}
+
+type RefundResponse struct {
+	MerchantID string   `json:"MerchantID"`
+	RqHeader   RqHeader `json:"RqHeader"`
+	TransCode  int      `json:"TransCode"`
+	TransMsg   string   `json:"TransMsg"`
+	Data       string   `json:"Data"`
+}
+
+type RefundResponseData struct {
+	MerchantID      string `json:"MerchantID"`
+	MerchantTradeNo string `json:"MerchantTradeNo"`
+	TradeNo         string `json:"TradeNo"`
+	RtnCode         int    `json:"RtnCode"`
+	RtnMsg          string `json:"RtnMsg"`
+}
+
+type QueryTradeRequest struct {
+	MerchantID string   `json:"MerchantID"`
+	RqHeader   RqHeader `json:"RqHeader"`
+	Data       string   `json:"Data"`
+}
+
+type QueryTradeRequestData struct {
+	MerchantTradeNo string `json:"MerchantTradeNo"`
+	MerchantID      string `json:"MerchantID"`
+}
+
+type QueryTradeResponse struct {
+	MerchantID string   `json:"MerchantID"`
+	RqHeader   RqHeader `json:"RqHeader"`
+	TransCode  int      `json:"TransCode"`
+	TransMsg   string   `json:"TransMsg"`
+	Data       string   `json:"Data"`
+}
+
+type QueryTradeResponseData struct {
+	RtnMsg   string `json:"RtnMsg"`
+	RtnValue struct {
+		TradeID  int    `json:"TradeID"`
+		Amount   int    `json:"Amount"`
+		ClsAmt   int    `json:"ClsAmt"`
+		AuthTime string `json:"AuthTime"`
+		Status   string `json:"Status"`
+	} `json:"RtnValue"`
+	CloseData []struct {
+		Status   string `json:"Status"`
+		Amount   int    `json:"Amount"`
+		DateTime string `json:"DateTime"`
+	} `json:"CloseData"`
+}
+
 type DeleteMemberBindCardRequest struct {
 	MerchantID string   `json:"MerchantID"`
 	RqHeader   RqHeader `json:"RqHeader"`
@@ -67,6 +147,7 @@ type DeleteMemberBindCardResponse struct {
 	TransMsg   string   `json:"TransMsg"`
 	Data       string   `json:"Data"`
 }
+
 type DeleteMemberBindCardResponseData struct {
 	RtnCode int    `json:"RtnCode"`
 	RtnMsg  string `json:"RtnMsg"`
@@ -334,11 +415,31 @@ func (c *Client) NewCreateBindCard() *CreateBindCardCall {
 	r.Client = c
 	return r
 }
+
 func (c *Client) NewDeleteMemberBindCard() *DeleteMemberBindCardCall {
 	r := new(DeleteMemberBindCardCall)
 	r.Client = c
 	return r
 }
+
+func (c *Client) NewQueryTrade() *QueryTradeCall {
+	r := new(QueryTradeCall)
+	r.Client = c
+	return r
+}
+
+func (c *Client) NewRefund() *RefundCall {
+	r := new(RefundCall)
+	r.Client = c
+	return r
+}
+
+func (c *QueryTradeCall) Request() *QueryTradeCall {
+	c.QueryTradeRequest = &QueryTradeRequest{}
+	c.QueryTradeRequestData = &QueryTradeRequestData{}
+	return c
+}
+
 func (c *CreatePaymentWithCardIDCall) Request() *CreatePaymentWithCardIDCall {
 	c.CreatePaymentWithCardIDRequestData = &CreatePaymentWithCardIDRequestData{}
 	c.CreatePaymentWithCardIDRequest = &CreatePaymentWithCardIDRequest{}
@@ -360,6 +461,12 @@ func (c *CreateBindCardCall) Request() *CreateBindCardCall {
 func (c *DeleteMemberBindCardCall) Request() *DeleteMemberBindCardCall {
 	c.DeleteMemberBindCardRequest = &DeleteMemberBindCardRequest{}
 	c.DeleteMemberBindCardRequestData = &DeleteMemberBindCardRequestData{}
+	return c
+}
+
+func (c *RefundCall) Request() *RefundCall {
+	c.RefundRequest = &RefundRequest{}
+	c.RefundRequestData = &RefundRequestData{}
 	return c
 }
 
@@ -391,6 +498,7 @@ func (c *CreateBindCardCall) CreateBindCard() *CreateBindCardCall {
 	c.CreateBindCardRequest.Data = Aes128(url.QueryEscape(string(jsonData)), c.Client.hashKey, c.Client.hashIV)
 	return c
 }
+
 func (c *DeleteMemberBindCardCall) DeleteMemberBindCard() *DeleteMemberBindCardCall {
 	c.DeleteMemberBindCardRequest.MerchantID = c.Client.merchantID
 	c.DeleteMemberBindCardRequest.RqHeader.Timestamp = int(time.Now().Unix())
@@ -399,6 +507,62 @@ func (c *DeleteMemberBindCardCall) DeleteMemberBindCard() *DeleteMemberBindCardC
 	fmt.Println(string(jsonData))
 	c.DeleteMemberBindCardRequest.Data = Aes128(url.QueryEscape(string(jsonData)), c.Client.hashKey, c.Client.hashIV)
 	return c
+}
+
+func (c *RefundCall) Refund() *RefundCall {
+	c.RefundRequest.MerchantID = c.Client.merchantID
+	c.RefundRequest.RqHeader.Timestamp = int(time.Now().Unix())
+	c.RefundRequest.RqHeader.Revision = "1.0.0"
+	jsonData, _ := json.Marshal(c.RefundRequestData)
+	fmt.Println(string(jsonData))
+	c.RefundRequest.Data = Aes128(url.QueryEscape(string(jsonData)), c.Client.hashKey, c.Client.hashIV)
+	return c
+}
+
+func (c *QueryTradeCall) QueryTrade() *QueryTradeCall {
+	c.QueryTradeRequest.MerchantID = c.Client.merchantID
+	c.QueryTradeRequest.RqHeader.Timestamp = int(time.Now().Unix())
+	c.QueryTradeRequest.RqHeader.Revision = "1.0.0"
+	jsonData, _ := json.Marshal(c.QueryTradeRequestData)
+	fmt.Println(string(jsonData))
+	c.QueryTradeRequest.Data = Aes128(url.QueryEscape(string(jsonData)), c.Client.hashKey, c.Client.hashIV)
+	return c
+}
+
+func (c *QueryTradeCall) Do(URL string) (*QueryTradeResponseData, error) {
+	marshal, err := json.Marshal(c.QueryTradeRequest)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshal))
+	request, err := SendRequest(marshal, URL)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	response := new(QueryTradeResponse)
+	err = json.Unmarshal(request, response)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	if response.TransCode != 1 {
+		return nil, errors.New(response.TransMsg)
+	} else {
+
+		dataString := DecodeAes128(response.Data, c.Client.hashKey, c.Client.hashIV)
+		unescape, err := url.QueryUnescape(dataString)
+		if err != nil {
+			return nil, err
+		}
+		responseData := new(QueryTradeResponseData)
+		err = json.Unmarshal([]byte(unescape), responseData)
+		if err != nil {
+			return nil, err
+		}
+		return responseData, nil
+	}
 }
 
 func (c *GetTokenByBindingCardRequestCall) Do(URL string) (*GetTokenByBindingCardResponseData, error) {
@@ -536,6 +700,42 @@ func (c *DeleteMemberBindCardCall) Do(URL string) (*DeleteMemberBindCardResponse
 			return nil, err
 		}
 		responseData := new(DeleteMemberBindCardResponseData)
+		err = json.Unmarshal([]byte(unescape), responseData)
+		if err != nil {
+			return nil, err
+		}
+		return responseData, nil
+	}
+}
+
+func (c *RefundCall) Do(URL string) (*RefundResponseData, error) {
+	marshal, err := json.Marshal(c.RefundRequest)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshal))
+	request, err := SendRequest(marshal, URL)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	response := new(RefundResponse)
+	err = json.Unmarshal(request, response)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	if response.TransCode != 1 {
+		return nil, errors.New(response.TransMsg)
+	} else {
+
+		dataString := DecodeAes128(response.Data, c.Client.hashKey, c.Client.hashIV)
+		unescape, err := url.QueryUnescape(dataString)
+		if err != nil {
+			return nil, err
+		}
+		responseData := new(RefundResponseData)
 		err = json.Unmarshal([]byte(unescape), responseData)
 		if err != nil {
 			return nil, err
