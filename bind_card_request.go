@@ -122,7 +122,7 @@ type QueryTradeResponseData struct {
 		AuthTime string `json:"AuthTime"`
 		Status   string `json:"Status"`
 	} `json:"RtnValue"`
-	CloseData []struct {
+	CloseData struct {
 		Status   string `json:"Status"`
 		Amount   int    `json:"Amount"`
 		DateTime string `json:"DateTime"`
